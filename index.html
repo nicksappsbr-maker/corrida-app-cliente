@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chamar Corrida</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #0f172a; color: #e2e8f0;
+  }
+  header {
+    padding: 14px 18px; background: #111827; display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid #1f2937;
+  }
+  header h1 { font-size: 17px; margin: 0; }
+  header a { color: #38bdf8; text-decoration: none; font-size: 13px; }
+  .config-bar {
+    padding: 8px 18px; background: #111827; font-size: 12px; color: #94a3b8;
+    display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #1f2937;
+  }
+  .config-bar input { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 4px 8px; border-radius: 6px; font-size: 12px; flex: 1; }
+  .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+  .card { background: #1e293b; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
+  input[type=text] {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #334155;
+    background: #0f172a; color: #e2e8f0; font-size: 14px; margin-bottom: 10px;
+  }
+  button {
+    border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-primary { background: #38bdf8; color: #0f172a; width: 100%; }
+  .btn-secondary { background: #334155; color: #e2e8f0; }
+  .btn-danger { background: #ef4444; color: white; }
+  #map { height: 260px; border-radius: 12px; margin-bottom: 12px; }
+  .destino-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #0f172a; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 13px;
+  }
+  .destino-item span.ordem {
+    background: #38bdf8; color: #0f172a; width: 20px; height: 20px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-right: 8px;
+  }
+  .resumo { display: flex; justify-content: space-between; font-size: 14px; margin: 6px 0; }
+  .resumo.total { font-size: 20px; font-weight: 700; color: #4ade80; }
+  .status-badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+  .status-buscando { background: #78350f; color: #fbbf24; }
+  .status-ofertada { background: #78350f; color: #fbbf24; }
+  .status-aceita { background: #164e63; color: #67e8f9; }
+  .status-chegou { background: #1e3a8a; color: #93c5fd; }
+  .status-concluida { background: #14532d; color: #86efac; }
+  .status-sem_motoboy_disponivel { background: #7f1d1d; color: #fca5a5; }
+  .hint { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏍️ Chamar Corrida</h1>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <a href="config.html">Configurar valores</a>
+    <a href="#" onclick="sair(); return false;" id="linkSair" class="oculto" style="color:#f87171;">Sair</a>
+  </div>
+</header>
+
+<div class="config-bar">
+  <label style="margin:0; white-space:nowrap;">Servidor:</label>
+  <input type="text" id="apiBase" placeholder="http://IP_DO_PC:3000" />
+  <button class="btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="salvarApiBase()">salvar</button>
+</div>
+
+<div class="container">
+
+  <!-- TELA DE LOGIN / CADASTRO -->
+  <div class="card" id="telaLogin">
+
+    <div id="formLogin">
+      <label>E-mail</label>
+      <input type="text" id="loginEmail" placeholder="seu@email.com" />
+      <label>Senha</label>
+      <input type="text" id="loginSenha" placeholder="Sua senha" style="-webkit-text-security:disc;" />
+      <button class="btn-primary" onclick="fazerLoginCliente()">Entrar</button>
+      <div class="hint" id="loginHint"></div>
+      <div class="hint" style="text-align:center; margin-top:14px;">
+        Não tem conta? <a href="#" onclick="mostrarCadastro(); return false;" style="color:#38bdf8;">Cadastre-se</a>
+      </div>
+    </div>
+
+    <div id="formCadastro" class="oculto">
+      <label>Seu nome</label>
+      <input type="text" id="cadNome" placeholder="Ex: Leandro" />
+      <label>E-mail</label>
+      <input type="text" id="cadEmail" placeholder="seu@email.com" />
+      <label>Senha</label>
+      <input type="text" id="cadSenha" placeholder="Crie uma senha" style="-webkit-text-security:disc;" />
+      <label>Telefone (opcional)</label>
+      <input type="text" id="cadTelefone" placeholder="(43) 99999-9999" />
+      <label>Seu endereço (ponto de partida)</label>
+      <input type="text" id="cadEndereco" placeholder="Ex: Av. Higienópolis, 1000, Londrina" />
+      <button class="btn-primary" onclick="cadastrarCliente()">Criar conta</button>
+      <div class="hint" id="cadastroHint"></div>
+      <div class="hint" style="text-align:center; margin-top:14px;">
+        Já tem conta? <a href="#" onclick="mostrarLogin(); return false;" style="color:#38bdf8;">Entrar</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TELA PRINCIPAL -->
+  <div class="card oculto" id="telaPrincipal">
+    <div id="map"></div>
+
+    <label>Adicionar endereço de destino (até 15)</label>
+    <input type="text" id="novoDestino" placeholder="Digite o endereço e pressione Enter" />
+    <button class="btn-secondary" onclick="adicionarDestino()" style="width:100%; margin-bottom:10px;">+ Adicionar destino</button>
+
+    <div id="listaDestinos"></div>
+
+    <div class="resumo"><span>Distância total</span><span id="distanciaTotal">0 km</span></div>
+    <div class="resumo total"><span>Valor da corrida</span><span id="valorTotal">R$ 0,00</span></div>
+
+    <button class="btn-primary" id="btnChamar" onclick="chamarMotoboy()" disabled>Chamar motoboy</button>
+  </div>
+
+  <!-- TELA DE ACOMPANHAMENTO -->
+  <div class="card oculto" id="telaAcompanhamento">
+    <div class="resumo"><span>Status da corrida</span><span class="status-badge" id="statusBadge">-</span></div>
+    <div id="infoMotoboy" class="hint"></div>
+    <button class="btn-danger" style="width:100%; margin-top:10px;" onclick="cancelarAcompanhamento()">Voltar / nova corrida</button>
+  </div>
+
+</div>
+
+<script>
+// ================= Configuração =================
+let API_BASE = localStorage.getItem("api_base") || "https://corrida-app-server.onrender.com";
+document.getElementById("apiBase").value = API_BASE;
+
+function salvarApiBase() {
+  API_BASE = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+  localStorage.setItem("api_base", API_BASE);
+  alert("Servidor salvo: " + API_BASE);
+}
+
+// ================= Estado =================
+let usuario = null;
+let destinos = []; // { endereco, lat, lng }
+let precos = { valor_km: 2.5, taxa_base: 5, valor_minimo: 8 };
+let map, origemMarker, destinoMarkers = [], rotaLayer;
+let corridaAtualId = null;
+let pollTimer = null;
+
+// ================= Geocodificação (Nominatim - grátis, sem chave) =================
+async function geocodificar(endereco) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(endereco)}`;
+  const resp = await fetch(url, { headers: { "Accept-Language": "pt-BR" } });
+  const dados = await resp.json();
+  if (!dados.length) throw new Error("Endereço não encontrado");
+  return { lat: parseFloat(dados[0].lat), lng: parseFloat(dados[0].lon) };
+}
+
+// ================= Login / Cadastro =================
+function mostrarCadastro() {
+  document.getElementById("formLogin").classList.add("oculto");
+  document.getElementById("formCadastro").classList.remove("oculto");
+}
+function mostrarLogin() {
+  document.getElementById("formCadastro").classList.add("oculto");
+  document.getElementById("formLogin").classList.remove("oculto");
+}
+
+async function fazerLoginCliente() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const senha = document.getElementById("loginSenha").value;
+  const hint = document.getElementById("loginHint");
+  if (!email || !senha) { hint.textContent = "Preencha e-mail e senha."; return; }
+  hint.textContent = "Entrando...";
+  try {
+    const resp = await fetch(`${API_BASE}/api/clientes/login`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, senha })
+    });
+    const dados = await resp.json();
+    if (resp.status !== 200) { hint.textContent = dados.erro || "Não foi possível entrar."; return; }
+    usuario = dados;
+    salvarSessaoLocal();
+    await carregarConfigPrecos();
+    iniciarTelaPrincipal(usuario.lat, usuario.lng, usuario.endereco);
+  } catch (e) {
+    hint.textContent = "Erro: " + e.message;
+  }
+}
+
+async function cadastrarCliente() {
+  const nome = document.getElementById("cadNome").value.trim();
+  const email = document.getElementById("cadEmail").value.trim();
+  const senha = document.getElementById("cadSenha").value;
+  const telefone = document.getElementById("cadTelefone").value.trim();
+  const endereco = document.getElementById("cadEndereco").value.trim();
+  const hint = document.getElementById("cadastroHint");
+  if (!nome || !email || !senha || !endereco) { hint.textContent = "Preencha nome, e-mail, senha e endereço."; return; }
+  hint.textContent = "Localizando endereço...";
+  try {
+    const { lat, lng } = await geocodificar(endereco);
+    hint.textContent = "Criando conta...";
+    const resp = await fetch(`${API_BASE}/api/clientes/registrar`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, email, senha, telefone, endereco, lat, lng })
+    });
+    const dados = await resp.json();
+    if (resp.status !== 200) { hint.textContent = dados.erro || "Não foi possível criar a conta."; return; }
+    usuario = dados;
+    salvarSessaoLocal();
+    await carregarConfigPrecos();
+    iniciarTelaPrincipal(usuario.lat, usuario.lng, usuario.endereco);
+  } catch (e) {
+    hint.textContent = "Erro: " + e.message;
+  }
+}
+
+// ================= Sessão persistente (não desloga ao atualizar a página) =================
+function salvarSessaoLocal() {
+  try { localStorage.setItem("cliente_logado", JSON.stringify(usuario)); } catch (e) {}
+}
+
+function sair() {
+  usuario = null;
+  localStorage.removeItem("cliente_logado");
+  location.reload();
+}
+
+async function tentarRetomarSessaoCliente() {
+  const salvo = localStorage.getItem("cliente_logado");
+  if (!salvo) return;
+  try {
+    usuario = JSON.parse(salvo);
+    if (!usuario || !usuario.lat || !usuario.lng) { usuario = null; return; }
+    await carregarConfigPrecos();
+    iniciarTelaPrincipal(usuario.lat, usuario.lng, usuario.endereco);
+  } catch (e) {
+    console.error("Erro ao retomar sessão:", e);
+    localStorage.removeItem("cliente_logado");
+  }
+}
+
+async function carregarConfigPrecos() {
+  const resp = await fetch(`${API_BASE}/api/config-precos`);
+  precos = await resp.json();
+}
+
+// ================= Mapa =================
+function iniciarTelaPrincipal(lat, lng, endereco) {
+  document.getElementById("telaLogin").classList.add("oculto");
+  document.getElementById("telaPrincipal").classList.remove("oculto");
+  document.getElementById("linkSair").classList.remove("oculto");
+
+  map = L.map("map").setView([lat, lng], 14);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
+  origemMarker = L.marker([lat, lng], { title: "Origem" }).addTo(map).bindPopup("Origem: " + endereco).openPopup();
+}
+
+tentarRetomarSessaoCliente();
+
+// ================= Destinos =================
+document.getElementById("novoDestino").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); adicionarDestino(); }
+});
+
+async function adicionarDestino() {
+  const input = document.getElementById("novoDestino");
+  const endereco = input.value.trim();
+  if (!endereco) return;
+  if (destinos.length >= 15) { alert("Máximo de 15 destinos."); return; }
+  try {
+    const { lat, lng } = await geocodificar(endereco);
+    destinos.push({ endereco, lat, lng });
+    input.value = "";
+    renderizarDestinos();
+    await recalcularRotaEValor();
+  } catch (e) {
+    alert("Não foi possível localizar esse endereço: " + e.message);
+  }
+}
+
+function removerDestino(idx) {
+  destinos.splice(idx, 1);
+  renderizarDestinos();
+  recalcularRotaEValor();
+}
+
+function renderizarDestinos() {
+  const lista = document.getElementById("listaDestinos");
+  lista.innerHTML = "";
+  destinos.forEach((d, idx) => {
+    const div = document.createElement("div");
+    div.className = "destino-item";
+    div.innerHTML = `<span><span class="ordem">${idx + 1}</span>${d.endereco}</span>`;
+    const btn = document.createElement("button");
+    btn.className = "btn-danger";
+    btn.style = "padding:4px 10px; font-size:12px;";
+    btn.textContent = "remover";
+    btn.onclick = () => removerDestino(idx);
+    div.appendChild(btn);
+    lista.appendChild(div);
+  });
+  document.getElementById("btnChamar").disabled = destinos.length === 0;
+}
+
+// ================= Rota (OSRM - grátis, sem chave) + valor =================
+async function recalcularRotaEValor() {
+  destinoMarkers.forEach(m => map.removeLayer(m));
+  destinoMarkers = [];
+  if (rotaLayer) { map.removeLayer(rotaLayer); rotaLayer = null; }
+
+  if (destinos.length === 0) {
+    document.getElementById("distanciaTotal").textContent = "0 km";
+    document.getElementById("valorTotal").textContent = formatarMoeda(0);
+    return;
+  }
+
+  destinos.forEach((d, idx) => {
+    const marker = L.marker([d.lat, d.lng]).addTo(map).bindPopup(`Destino ${idx + 1}: ${d.endereco}`);
+    destinoMarkers.push(marker);
+  });
+
+  const origem = origemMarker.getLatLng();
+  const pontos = [[origem.lng, origem.lat], ...destinos.map(d => [d.lng, d.lat])];
+  const coordsStr = pontos.map(p => p.join(",")).join(";");
+  const url = `https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`;
+
+  try {
+    const resp = await fetch(url);
+    const dados = await resp.json();
+    if (!dados.routes || !dados.routes.length) throw new Error("Rota não encontrada");
+    const rota = dados.routes[0];
+    const distanciaKm = rota.distance / 1000;
+
+    const latlngs = rota.geometry.coordinates.map(c => [c[1], c[0]]);
+    rotaLayer = L.polyline(latlngs, { color: "#38bdf8", weight: 4 }).addTo(map);
+    map.fitBounds(rotaLayer.getBounds(), { padding: [30, 30] });
+
+    const valor = Math.max(precos.taxa_base + distanciaKm * precos.valor_km, precos.valor_minimo);
+    document.getElementById("distanciaTotal").textContent = distanciaKm.toFixed(1) + " km";
+    document.getElementById("valorTotal").textContent = formatarMoeda(valor);
+    window._ultimaRota = { distanciaKm, valor };
+  } catch (e) {
+    document.getElementById("distanciaTotal").textContent = "erro ao calcular";
+    console.error(e);
+  }
+}
+
+function formatarMoeda(v) {
+  return "R$ " + v.toFixed(2).replace(".", ",");
+}
+
+// ================= Chamar corrida =================
+async function chamarMotoboy() {
+  if (!window._ultimaRota) { alert("Aguarde o cálculo da rota."); return; }
+  const origem = origemMarker.getLatLng();
+  const corpo = {
+    usuario_id: usuario.id,
+    origem: { endereco: usuario.endereco, lat: origem.lat, lng: origem.lng },
+    destinos,
+    distancia_total_km: window._ultimaRota.distanciaKm,
+    valor_calculado: window._ultimaRota.valor
+  };
+  const resp = await fetch(`${API_BASE}/api/corridas`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo)
+  });
+  const corrida = await resp.json();
+  corridaAtualId = corrida.id;
+
+  document.getElementById("telaPrincipal").classList.add("oculto");
+  document.getElementById("telaAcompanhamento").classList.remove("oculto");
+  iniciarPolling();
+}
+
+function iniciarPolling() {
+  atualizarStatus();
+  pollTimer = setInterval(atualizarStatus, 3000);
+}
+
+async function atualizarStatus() {
+  if (!corridaAtualId) return;
+  const resp = await fetch(`${API_BASE}/api/corridas/${corridaAtualId}`);
+  const corrida = await resp.json();
+  const badge = document.getElementById("statusBadge");
+  badge.className = "status-badge status-" + corrida.status;
+  const textos = {
+    buscando: "Buscando motoboy...",
+    ofertada: "Motoboy notificado, aguardando aceite...",
+    aceita: "Motoboy a caminho!",
+    chegou: "Motoboy chegou no local!",
+    concluida: "Corrida concluída ✅",
+    sem_motoboy_disponivel: "Nenhum motoboy disponível no momento"
+  };
+  badge.textContent = textos[corrida.status] || corrida.status;
+
+  const info = document.getElementById("infoMotoboy");
+  if (corrida.status === "concluida") {
+    info.textContent = "Obrigado! Corrida finalizada.";
+    clearInterval(pollTimer);
+  } else {
+    info.textContent = "";
+  }
+}
+
+function cancelarAcompanhamento() {
+  clearInterval(pollTimer);
+  corridaAtualId = null;
+  destinos = [];
+  document.getElementById("telaAcompanhamento").classList.add("oculto");
+  document.getElementById("telaPrincipal").classList.remove("oculto");
+  renderizarDestinos();
+  recalcularRotaEValor();
+}
+</script>
+</body>
+</html>
