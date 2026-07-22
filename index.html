@@ -111,15 +111,32 @@
   .status-sem_motoboy_disponivel { background: #7f1d1d; color: #fca5a5; }
 
   /* ===== CORRIDAS (histórico) ===== */
-  #viewCorridas { width: 100%; padding: 24px; overflow-y: auto; }
-  .historico-container { max-width: 720px; margin: 0 auto; }
+  #viewCorridas { width: 100%; display: flex; }
+  .historico-lista { width: 380px; flex-shrink: 0; padding: 20px; overflow-y: auto; border-right: 1px solid var(--border); }
+  .historico-detalhe { flex: 1; padding: 24px; overflow-y: auto; }
   .historico-item {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; margin-bottom: 12px;
+    cursor: pointer; transition: border-color .15s;
   }
+  .historico-item:hover { border-color: var(--accent); }
+  .historico-item.selecionado { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .historico-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .historico-data { font-size: 0.8rem; color: var(--text-secondary); }
   .historico-valor { font-size: 1.2rem; font-weight: 800; color: var(--success); margin-bottom: 4px; }
   .historico-endereco { font-size: 0.88rem; color: var(--text-secondary); }
+
+  .detalhe-card { max-width: 640px; }
+  .detalhe-linha-tempo {
+    display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .detalhe-linha-tempo:last-child { border-bottom: none; }
+  .detalhe-ponto {
+    width: 12px; height: 12px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0;
+  }
+  .detalhe-ponto.pendente { background: var(--border); }
+  .detalhe-tempo-titulo { font-weight: 700; font-size: 0.92rem; }
+  .detalhe-tempo-sub { font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; }
+  .detalhe-tempo-hora { font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; }
 
   /* ===== PERFIL ===== */
   #viewPerfil { width: 100%; padding: 24px; overflow-y: auto; }
@@ -135,6 +152,8 @@
     .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 55vh; }
     .map-area { min-height: 300px; }
     nav .tabs button span.label { display: none; }
+    #viewCorridas { flex-direction: column; }
+    .historico-lista { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 45vh; }
   }
 </style>
 </head>
@@ -227,10 +246,13 @@
 
     <!-- CORRIDAS: histórico -->
     <div id="viewCorridas" class="oculto">
-      <div class="historico-container">
+      <div class="historico-lista">
         <h2 style="margin-top:0;">Minhas corridas</h2>
         <div id="listaHistorico"></div>
         <div class="hint" id="historicoVazio"></div>
+      </div>
+      <div class="historico-detalhe" id="historicoDetalhe">
+        <div class="hint">Selecione uma corrida na lista pra ver os detalhes completos.</div>
       </div>
     </div>
 
@@ -602,24 +624,29 @@ function cancelarAcompanhamento() {
 }
 
 // ================= Histórico de corridas =================
+const textosStatus = {
+  buscando: "Buscando motoboy", ofertada: "Aguardando aceite", aceita: "Motoboy a caminho",
+  chegou: "Motoboy no local", concluida: "Concluída", sem_motoboy_disponivel: "Sem motoboy disponível",
+  cancelada: "Cancelada"
+};
+let historicoCorridas = [];
+
 async function carregarHistorico() {
   const lista = document.getElementById("listaHistorico");
   const vazio = document.getElementById("historicoVazio");
   lista.innerHTML = "";
   vazio.textContent = "Carregando...";
+  document.getElementById("historicoDetalhe").innerHTML = '<div class="hint">Selecione uma corrida na lista pra ver os detalhes completos.</div>';
   try {
     const resp = await fetch(`${API_BASE}/api/corridas/usuario/${usuario.id}/historico`);
-    const corridas = await resp.json();
-    if (!corridas.length) { vazio.textContent = "Você ainda não fez nenhuma corrida."; return; }
+    historicoCorridas = await resp.json();
+    if (!historicoCorridas.length) { vazio.textContent = "Você ainda não fez nenhuma corrida."; return; }
     vazio.textContent = "";
-    const textosStatus = {
-      buscando: "Buscando motoboy", ofertada: "Aguardando aceite", aceita: "Motoboy a caminho",
-      chegou: "Motoboy no local", concluida: "Concluída", sem_motoboy_disponivel: "Sem motoboy disponível",
-      cancelada: "Cancelada"
-    };
-    corridas.forEach((c) => {
+    historicoCorridas.forEach((c, idx) => {
       const div = document.createElement("div");
       div.className = "historico-item";
+      div.id = "historicoItem" + idx;
+      div.onclick = () => mostrarDetalheHistorico(idx);
       const data = new Date(c.criada_em).toLocaleString("pt-BR");
       const extras = c.destinos.length - 1;
       div.innerHTML = `
@@ -636,6 +663,73 @@ async function carregarHistorico() {
   } catch (e) {
     vazio.textContent = "Erro ao carregar histórico: " + e.message;
   }
+}
+
+function formatarHora(timestamp) {
+  return timestamp ? new Date(timestamp).toLocaleString("pt-BR") : null;
+}
+
+function mostrarDetalheHistorico(idx) {
+  document.querySelectorAll(".historico-item").forEach((el) => el.classList.remove("selecionado"));
+  document.getElementById("historicoItem" + idx).classList.add("selecionado");
+
+  const c = historicoCorridas[idx];
+  const detalhe = document.getElementById("historicoDetalhe");
+
+  const etapas = [];
+  etapas.push({
+    titulo: "Corrida solicitada",
+    sub: c.origem.endereco,
+    hora: formatarHora(c.criada_em),
+    feito: true
+  });
+  etapas.push({
+    titulo: c.motoboy_nome ? `Aceita por ${c.motoboy_nome}` : "Aguardando motoboy aceitar",
+    sub: c.aceita_em ? "Motoboy a caminho da coleta" : "-",
+    hora: formatarHora(c.aceita_em),
+    feito: !!c.aceita_em
+  });
+  etapas.push({
+    titulo: "Chegada na coleta",
+    sub: c.origem.endereco,
+    hora: formatarHora(c.chegou_coleta_em),
+    feito: !!c.chegou_coleta_em
+  });
+  c.destinos.forEach((d, i) => {
+    etapas.push({
+      titulo: `Entrega ${i + 1} de ${c.destinos.length}`,
+      sub: d.endereco,
+      hora: formatarHora(d.entregue_em),
+      feito: !!d.entregue_em
+    });
+  });
+  etapas.push({
+    titulo: "Corrida concluída",
+    sub: c.motoboy_nome ? `Finalizada por ${c.motoboy_nome} no último endereço de entrega` : "-",
+    hora: formatarHora(c.concluida_em),
+    feito: !!c.concluida_em
+  });
+
+  detalhe.innerHTML = `
+    <div class="detalhe-card card">
+      <div class="historico-topo">
+        <span class="status-badge status-${c.status}">${textosStatus[c.status] || c.status}</span>
+        <span class="historico-data">${formatarHora(c.criada_em)}</span>
+      </div>
+      <div class="historico-valor" style="font-size:1.6rem; margin:10px 0 4px;">${formatarMoeda(c.valor_calculado || 0)}</div>
+      <div class="hint" style="margin-bottom:18px;">${c.distancia_total_km ? c.distancia_total_km.toFixed(1) + " km de percurso total" : ""}</div>
+      ${etapas.map(e => `
+        <div class="detalhe-linha-tempo">
+          <div class="detalhe-ponto ${e.feito ? "" : "pendente"}"></div>
+          <div>
+            <div class="detalhe-tempo-titulo">${e.titulo}</div>
+            <div class="detalhe-tempo-sub">${e.sub}</div>
+            ${e.hora ? `<div class="detalhe-tempo-hora">${e.hora}</div>` : ""}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 // ================= Perfil =================
