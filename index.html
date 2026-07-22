@@ -263,13 +263,17 @@
 
           <button class="btn-primary" onclick="salvarPerfil()">Salvar alterações</button>
           <div class="hint" id="perfilHint"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="perfil-secao-titulo" style="margin-top:0;">Sistema</div>
+          <a href="config.html" style="display:block; padding:12px 0; font-weight:700;">⚙️ Configurar valores por KM →</a>
 
           <details class="avancado">
-            <summary>Configurações avançadas</summary>
+            <summary>Configurações avançadas (servidor)</summary>
             <label style="margin-top:10px;">Endereço do servidor</label>
             <input type="text" id="apiBase" />
             <button class="btn-secondary" onclick="salvarApiBase()">Salvar servidor</button>
-            <div class="hint" style="margin-top:10px;"><a href="config.html">Configurar valores por KM →</a></div>
           </details>
         </div>
       </div>
