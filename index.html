@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,148 +7,293 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
+  :root, [data-theme="dark"] {
+    --bg: #0b1120; --bg-nav: #111827; --bg-card: #161f32; --bg-input: #0d1526;
+    --border: #223049; --text: #e6edf7; --text-secondary: #9fb0c9;
+    --accent: #38bdf8; --accent-2: #0ea5e9; --accent-text: #04202e;
+    --success: #4ade80; --success-text: #052e16; --danger: #f87171; --danger-text: #fff;
+    --shadow: rgba(0,0,0,0.35);
+  }
+  [data-theme="light"] {
+    --bg: #eef2f8; --bg-nav: #ffffff; --bg-card: #ffffff; --bg-input: #f3f6fb;
+    --border: #dde5f0; --text: #16213b; --text-secondary: #5b6b85;
+    --accent: #0ea5e9; --accent-2: #0284c7; --accent-text: #ffffff;
+    --success: #16a34a; --success-text: #ffffff; --danger: #dc2626; --danger-text: #fff;
+    --shadow: rgba(30,41,59,0.1);
+  }
   * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
   body {
-    margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: #0f172a; color: #e2e8f0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); transition: background .2s, color .2s;
   }
-  header {
-    padding: 14px 18px; background: #111827; display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid #1f2937;
+  a { color: var(--accent); text-decoration: none; }
+  #app { display: flex; flex-direction: column; height: 100%; }
+
+  /* ===== NAV ===== */
+  nav {
+    padding: 0 20px; background: var(--bg-nav); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; height: 60px; flex-shrink: 0;
+    box-shadow: 0 1px 0 var(--shadow); position: relative; z-index: 20;
   }
-  header h1 { font-size: 17px; margin: 0; }
-  header a { color: #38bdf8; text-decoration: none; font-size: 13px; }
-  .config-bar {
-    padding: 8px 18px; background: #111827; font-size: 12px; color: #94a3b8;
-    display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #1f2937;
+  nav .logo { font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  nav .tabs { display: flex; gap: 4px; }
+  nav .tabs button {
+    background: transparent; border: none; color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;
+    padding: 8px 14px; border-radius: 8px; cursor: pointer;
   }
-  .config-bar input { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 4px 8px; border-radius: 6px; font-size: 12px; flex: 1; }
-  .container { max-width: 480px; margin: 0 auto; padding: 16px; }
-  .card { background: #1e293b; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
-  label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
-  input[type=text] {
-    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #334155;
-    background: #0f172a; color: #e2e8f0; font-size: 14px; margin-bottom: 10px;
+  nav .tabs button.ativo { background: var(--accent); color: var(--accent-text); }
+  nav .direita { display: flex; align-items: center; gap: 10px; }
+  .btn-tema {
+    background: var(--bg-input); border: 1px solid var(--border); color: var(--text);
+    width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
   }
+  nav a#linkSair { color: var(--danger); font-weight: 600; font-size: 0.9rem; }
+
+  /* ===== LAYOUT ===== */
+  main { flex: 1; overflow: hidden; display: flex; }
+  .oculto { display: none !important; }
+
   button {
-    border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 600;
-    cursor: pointer;
+    border: none; border-radius: 12px; padding: 13px 16px; font-size: 0.95rem; font-weight: 700;
+    cursor: pointer; transition: transform .08s, filter .15s;
   }
-  .btn-primary { background: #38bdf8; color: #0f172a; width: 100%; }
-  .btn-secondary { background: #334155; color: #e2e8f0; }
-  .btn-danger { background: #ef4444; color: white; }
-  #map { height: 260px; border-radius: 12px; margin-bottom: 12px; }
+  button:active { transform: scale(0.98); filter: brightness(0.95); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-text); width: 100%; }
+  .btn-secondary { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); width: 100%; }
+  .btn-danger { background: var(--danger); color: var(--danger-text); }
+
+  label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
+  input[type=text], input[type=email], input[type=password] {
+    width: 100%; padding: 11px 13px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--bg-input); color: var(--text); font-size: 0.95rem; margin-bottom: 12px;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px;
+    box-shadow: 0 6px 20px var(--shadow);
+  }
+
+  /* ===== TELA LOGIN ===== */
+  #telaLogin { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  #telaLogin .card { width: 100%; max-width: 400px; }
+  .hint { font-size: 0.82rem; color: var(--text-secondary); margin-top: 6px; }
+
+  /* ===== HOME (sidebar + mapa) ===== */
+  #viewHome { display: flex; width: 100%; }
+  .sidebar {
+    width: 420px; flex-shrink: 0; padding: 20px; overflow-y: auto; border-right: 1px solid var(--border);
+  }
+  .map-area { flex: 1; position: relative; }
+  #map { width: 100%; height: 100%; }
+
+  .cliente-card { margin-bottom: 16px; }
+  .cliente-nome { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
+  .cliente-origem { font-size: 0.88rem; color: var(--text-secondary); }
+
   .destino-item {
     display: flex; justify-content: space-between; align-items: center;
-    background: #0f172a; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 13px;
+    background: var(--bg-input); border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; font-size: 0.88rem;
   }
   .destino-item span.ordem {
-    background: #38bdf8; color: #0f172a; width: 20px; height: 20px; border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-right: 8px;
+    background: var(--accent); color: var(--accent-text); width: 20px; height: 20px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-right: 8px; flex-shrink: 0;
   }
-  .resumo { display: flex; justify-content: space-between; font-size: 14px; margin: 6px 0; }
-  .resumo.total { font-size: 20px; font-weight: 700; color: #4ade80; }
-  .status-badge {
-    display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
-  }
-  .status-buscando { background: #78350f; color: #fbbf24; }
-  .status-ofertada { background: #78350f; color: #fbbf24; }
+  .resumo { display: flex; justify-content: space-between; font-size: 0.92rem; margin: 8px 0; }
+  .resumo.total { font-size: 1.5rem; font-weight: 800; color: var(--success); margin: 10px 0 16px; }
+  .status-badge { display: inline-block; padding: 5px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+  .status-buscando, .status-ofertada { background: #78350f; color: #fbbf24; }
   .status-aceita { background: #164e63; color: #67e8f9; }
   .status-chegou { background: #1e3a8a; color: #93c5fd; }
   .status-concluida { background: #14532d; color: #86efac; }
   .status-sem_motoboy_disponivel { background: #7f1d1d; color: #fca5a5; }
-  .hint { font-size: 12px; color: #64748b; margin-top: 4px; }
-  .oculto { display: none !important; }
+
+  /* ===== CORRIDAS (histórico) ===== */
+  #viewCorridas { width: 100%; padding: 24px; overflow-y: auto; }
+  .historico-container { max-width: 720px; margin: 0 auto; }
+  .historico-item {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; margin-bottom: 12px;
+  }
+  .historico-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .historico-data { font-size: 0.8rem; color: var(--text-secondary); }
+  .historico-valor { font-size: 1.2rem; font-weight: 800; color: var(--success); margin-bottom: 4px; }
+  .historico-endereco { font-size: 0.88rem; color: var(--text-secondary); }
+
+  /* ===== PERFIL ===== */
+  #viewPerfil { width: 100%; padding: 24px; overflow-y: auto; }
+  .perfil-container { max-width: 560px; margin: 0 auto; }
+  .perfil-secao-titulo { font-size: 0.95rem; font-weight: 800; margin: 22px 0 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+  .perfil-secao-titulo:first-child { margin-top: 0; }
+  details.avancado summary { cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); margin-top: 16px; }
+  details.avancado { margin-top: 10px; }
+  details.avancado input { margin-top: 8px; }
+
+  @media (max-width: 860px) {
+    #viewHome { flex-direction: column; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 55vh; }
+    .map-area { min-height: 300px; }
+    nav .tabs button span.label { display: none; }
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>🏍️ Chamar Corrida</h1>
-  <div style="display:flex; align-items:center; gap:14px;">
-    <a href="config.html">Configurar valores</a>
-    <a href="#" onclick="sair(); return false;" id="linkSair" class="oculto" style="color:#f87171;">Sair</a>
-  </div>
-</header>
+<div id="app">
+  <nav>
+    <div class="logo">🏍️ Chamar Corrida</div>
+    <div class="tabs oculto" id="navTabs">
+      <button class="ativo" onclick="mostrarView('home')" data-tab="home">🏠 <span class="label">Home</span></button>
+      <button onclick="mostrarView('corridas')" data-tab="corridas">📋 <span class="label">Corridas</span></button>
+      <button onclick="mostrarView('perfil')" data-tab="perfil">👤 <span class="label">Perfil</span></button>
+    </div>
+    <div class="direita">
+      <button class="btn-tema" onclick="alternarTema()" id="btnTema" title="Alternar tema">🌙</button>
+      <a href="#" onclick="sair(); return false;" id="linkSair" class="oculto">Sair</a>
+    </div>
+  </nav>
 
-<div class="config-bar">
-  <label style="margin:0; white-space:nowrap;">Servidor:</label>
-  <input type="text" id="apiBase" placeholder="http://IP_DO_PC:3000" />
-  <button class="btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="salvarApiBase()">salvar</button>
-</div>
+  <main>
 
-<div class="container">
+    <!-- TELA DE LOGIN / CADASTRO -->
+    <div id="telaLogin">
+      <div class="card">
+        <div id="formLogin">
+          <label>E-mail</label>
+          <input type="text" id="loginEmail" placeholder="seu@email.com" />
+          <label>Senha</label>
+          <input type="password" id="loginSenha" placeholder="Sua senha" />
+          <button class="btn-primary" onclick="fazerLoginCliente()">Entrar</button>
+          <div class="hint" id="loginHint"></div>
+          <div class="hint" style="text-align:center; margin-top:14px;">
+            Não tem conta? <a href="#" onclick="mostrarCadastro(); return false;">Cadastre-se</a>
+          </div>
+        </div>
 
-  <!-- TELA DE LOGIN / CADASTRO -->
-  <div class="card" id="telaLogin">
-
-    <div id="formLogin">
-      <label>E-mail</label>
-      <input type="text" id="loginEmail" placeholder="seu@email.com" />
-      <label>Senha</label>
-      <input type="text" id="loginSenha" placeholder="Sua senha" style="-webkit-text-security:disc;" />
-      <button class="btn-primary" onclick="fazerLoginCliente()">Entrar</button>
-      <div class="hint" id="loginHint"></div>
-      <div class="hint" style="text-align:center; margin-top:14px;">
-        Não tem conta? <a href="#" onclick="mostrarCadastro(); return false;" style="color:#38bdf8;">Cadastre-se</a>
+        <div id="formCadastro" class="oculto">
+          <label>Seu nome</label>
+          <input type="text" id="cadNome" placeholder="Ex: Leandro" />
+          <label>E-mail</label>
+          <input type="text" id="cadEmail" placeholder="seu@email.com" />
+          <label>Senha</label>
+          <input type="password" id="cadSenha" placeholder="Crie uma senha" />
+          <label>Telefone (opcional)</label>
+          <input type="text" id="cadTelefone" placeholder="(43) 99999-9999" />
+          <label>Seu endereço (ponto de partida)</label>
+          <input type="text" id="cadEndereco" placeholder="Ex: Av. Higienópolis, 1000, Londrina" />
+          <button class="btn-primary" onclick="cadastrarCliente()">Criar conta</button>
+          <div class="hint" id="cadastroHint"></div>
+          <div class="hint" style="text-align:center; margin-top:14px;">
+            Já tem conta? <a href="#" onclick="mostrarLogin(); return false;">Entrar</a>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div id="formCadastro" class="oculto">
-      <label>Seu nome</label>
-      <input type="text" id="cadNome" placeholder="Ex: Leandro" />
-      <label>E-mail</label>
-      <input type="text" id="cadEmail" placeholder="seu@email.com" />
-      <label>Senha</label>
-      <input type="text" id="cadSenha" placeholder="Crie uma senha" style="-webkit-text-security:disc;" />
-      <label>Telefone (opcional)</label>
-      <input type="text" id="cadTelefone" placeholder="(43) 99999-9999" />
-      <label>Seu endereço (ponto de partida)</label>
-      <input type="text" id="cadEndereco" placeholder="Ex: Av. Higienópolis, 1000, Londrina" />
-      <button class="btn-primary" onclick="cadastrarCliente()">Criar conta</button>
-      <div class="hint" id="cadastroHint"></div>
-      <div class="hint" style="text-align:center; margin-top:14px;">
-        Já tem conta? <a href="#" onclick="mostrarLogin(); return false;" style="color:#38bdf8;">Entrar</a>
+    <!-- HOME: sidebar + mapa -->
+    <div id="viewHome" class="oculto">
+      <div class="sidebar">
+
+        <div class="card cliente-card">
+          <div class="cliente-nome" id="clienteNome">-</div>
+          <div class="cliente-origem">Origem: <span id="clienteOrigem">-</span></div>
+        </div>
+
+        <!-- Formulário de nova corrida -->
+        <div class="card" id="cardNovaCorrida">
+          <label>Adicionar endereço de destino (até 15)</label>
+          <input type="text" id="novoDestino" placeholder="Digite o endereço e pressione Enter" />
+          <button class="btn-secondary" onclick="adicionarDestino()" style="margin-bottom:14px;">+ Adicionar destino</button>
+
+          <div id="listaDestinos"></div>
+
+          <div class="resumo"><span>Distância total</span><span id="distanciaTotal">0 km</span></div>
+          <div class="resumo total"><span>Valor da corrida</span><span id="valorTotal">R$ 0,00</span></div>
+
+          <button class="btn-primary" id="btnChamar" onclick="chamarMotoboy()" disabled>Chamar motoboy</button>
+        </div>
+
+        <!-- Acompanhamento de corrida ativa -->
+        <div class="card oculto" id="telaAcompanhamento">
+          <div class="resumo"><span>Status da corrida</span><span class="status-badge" id="statusBadge">-</span></div>
+          <div id="infoMotoboy" class="hint"></div>
+          <button class="btn-danger" style="width:100%; margin-top:14px;" onclick="cancelarAcompanhamento()">Voltar / nova corrida</button>
+        </div>
+
+      </div>
+      <div class="map-area"><div id="map"></div></div>
+    </div>
+
+    <!-- CORRIDAS: histórico -->
+    <div id="viewCorridas" class="oculto">
+      <div class="historico-container">
+        <h2 style="margin-top:0;">Minhas corridas</h2>
+        <div id="listaHistorico"></div>
+        <div class="hint" id="historicoVazio"></div>
       </div>
     </div>
 
-  </div>
+    <!-- PERFIL -->
+    <div id="viewPerfil" class="oculto">
+      <div class="perfil-container">
+        <h2 style="margin-top:0;">Meu perfil</h2>
+        <div class="card">
+          <div class="perfil-secao-titulo">Dados pessoais</div>
+          <label>Nome</label>
+          <input type="text" id="perfilNome" />
+          <label>E-mail</label>
+          <input type="text" id="perfilEmail" />
+          <label>Telefone</label>
+          <input type="text" id="perfilTelefone" placeholder="(43) 99999-9999" />
+          <label>Nova senha (deixe em branco para manter a atual)</label>
+          <input type="password" id="perfilSenha" placeholder="••••••••" />
 
-  <!-- TELA PRINCIPAL -->
-  <div class="card oculto" id="telaPrincipal">
-    <div id="map"></div>
+          <div class="perfil-secao-titulo">Endereço padrão</div>
+          <label>Endereço (ponto de partida das corridas)</label>
+          <input type="text" id="perfilEndereco" />
 
-    <label>Adicionar endereço de destino (até 15)</label>
-    <input type="text" id="novoDestino" placeholder="Digite o endereço e pressione Enter" />
-    <button class="btn-secondary" onclick="adicionarDestino()" style="width:100%; margin-bottom:10px;">+ Adicionar destino</button>
+          <div class="perfil-secao-titulo">Dados da loja/estabelecimento (opcional)</div>
+          <label>Nome do estabelecimento</label>
+          <input type="text" id="perfilNomeLoja" placeholder="Ex: Restaurante do Léo" />
+          <label>CNPJ / CPF</label>
+          <input type="text" id="perfilCnpj" placeholder="00.000.000/0000-00" />
+          <label>Telefone comercial</label>
+          <input type="text" id="perfilTelefoneLoja" placeholder="(43) 3333-3333" />
 
-    <div id="listaDestinos"></div>
+          <button class="btn-primary" onclick="salvarPerfil()">Salvar alterações</button>
+          <div class="hint" id="perfilHint"></div>
 
-    <div class="resumo"><span>Distância total</span><span id="distanciaTotal">0 km</span></div>
-    <div class="resumo total"><span>Valor da corrida</span><span id="valorTotal">R$ 0,00</span></div>
+          <details class="avancado">
+            <summary>Configurações avançadas</summary>
+            <label style="margin-top:10px;">Endereço do servidor</label>
+            <input type="text" id="apiBase" />
+            <button class="btn-secondary" onclick="salvarApiBase()">Salvar servidor</button>
+            <div class="hint" style="margin-top:10px;"><a href="config.html">Configurar valores por KM →</a></div>
+          </details>
+        </div>
+      </div>
+    </div>
 
-    <button class="btn-primary" id="btnChamar" onclick="chamarMotoboy()" disabled>Chamar motoboy</button>
-  </div>
-
-  <!-- TELA DE ACOMPANHAMENTO -->
-  <div class="card oculto" id="telaAcompanhamento">
-    <div class="resumo"><span>Status da corrida</span><span class="status-badge" id="statusBadge">-</span></div>
-    <div id="infoMotoboy" class="hint"></div>
-    <button class="btn-danger" style="width:100%; margin-top:10px;" onclick="cancelarAcompanhamento()">Voltar / nova corrida</button>
-  </div>
-
+  </main>
 </div>
 
 <script>
+// ================= Tema =================
+function alternarTema() {
+  const atual = document.documentElement.getAttribute("data-theme");
+  const novo = atual === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", novo);
+  document.getElementById("btnTema").textContent = novo === "dark" ? "🌙" : "☀️";
+  localStorage.setItem("tema", novo);
+}
+(function aplicarTemaSalvo() {
+  const salvo = localStorage.getItem("tema") || "dark";
+  document.documentElement.setAttribute("data-theme", salvo);
+})();
+
 // ================= Configuração =================
 let API_BASE = localStorage.getItem("api_base") || "https://corrida-app-server.onrender.com";
-document.getElementById("apiBase").value = API_BASE;
-
-function salvarApiBase() {
-  API_BASE = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
-  localStorage.setItem("api_base", API_BASE);
-  alert("Servidor salvo: " + API_BASE);
-}
 
 // ================= Estado =================
 let usuario = null;
@@ -157,6 +302,19 @@ let precos = { valor_km: 2.5, taxa_base: 5, valor_minimo: 8 };
 let map, origemMarker, destinoMarkers = [], rotaLayer;
 let corridaAtualId = null;
 let pollTimer = null;
+
+// ================= Navegação entre views =================
+function mostrarView(nome) {
+  ["Home", "Corridas", "Perfil"].forEach((v) => {
+    document.getElementById("view" + v).classList.toggle("oculto", v.toLowerCase() !== nome);
+  });
+  document.querySelectorAll("#navTabs button").forEach((b) => {
+    b.classList.toggle("ativo", b.dataset.tab === nome);
+  });
+  if (nome === "corridas") carregarHistorico();
+  if (nome === "perfil") preencherFormularioPerfil();
+  if (nome === "home" && map) setTimeout(() => map.invalidateSize(), 100);
+}
 
 // ================= Geocodificação (Nominatim - grátis, sem chave) =================
 async function geocodificar(endereco) {
@@ -193,7 +351,7 @@ async function fazerLoginCliente() {
     usuario = dados;
     salvarSessaoLocal();
     await carregarConfigPrecos();
-    iniciarTelaPrincipal(usuario.lat, usuario.lng, usuario.endereco);
+    entrarNoApp();
   } catch (e) {
     hint.textContent = "Erro: " + e.message;
   }
@@ -220,13 +378,13 @@ async function cadastrarCliente() {
     usuario = dados;
     salvarSessaoLocal();
     await carregarConfigPrecos();
-    iniciarTelaPrincipal(usuario.lat, usuario.lng, usuario.endereco);
+    entrarNoApp();
   } catch (e) {
     hint.textContent = "Erro: " + e.message;
   }
 }
 
-// ================= Sessão persistente (não desloga ao atualizar a página) =================
+// ================= Sessão persistente =================
 function salvarSessaoLocal() {
   try { localStorage.setItem("cliente_logado", JSON.stringify(usuario)); } catch (e) {}
 }
@@ -244,7 +402,7 @@ async function tentarRetomarSessaoCliente() {
     usuario = JSON.parse(salvo);
     if (!usuario || !usuario.lat || !usuario.lng) { usuario = null; return; }
     await carregarConfigPrecos();
-    iniciarTelaPrincipal(usuario.lat, usuario.lng, usuario.endereco);
+    entrarNoApp();
   } catch (e) {
     console.error("Erro ao retomar sessão:", e);
     localStorage.removeItem("cliente_logado");
@@ -256,15 +414,31 @@ async function carregarConfigPrecos() {
   precos = await resp.json();
 }
 
-// ================= Mapa =================
-function iniciarTelaPrincipal(lat, lng, endereco) {
-  document.getElementById("telaLogin").classList.add("oculto");
-  document.getElementById("telaPrincipal").classList.remove("oculto");
-  document.getElementById("linkSair").classList.remove("oculto");
+function salvarApiBase() {
+  API_BASE = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+  localStorage.setItem("api_base", API_BASE);
+  alert("Servidor salvo: " + API_BASE);
+}
 
+// ================= Entrar no app (pós login/cadastro/retomada) =================
+function entrarNoApp() {
+  document.getElementById("telaLogin").classList.add("oculto");
+  document.getElementById("navTabs").classList.remove("oculto");
+  document.getElementById("linkSair").classList.remove("oculto");
+  document.getElementById("apiBase").value = API_BASE;
+  document.getElementById("clienteNome").textContent = usuario.nome;
+  document.getElementById("clienteOrigem").textContent = usuario.endereco;
+  mostrarView("home");
+  iniciarMapa(usuario.lat, usuario.lng, usuario.endereco);
+}
+
+// ================= Mapa =================
+function iniciarMapa(lat, lng, endereco) {
+  if (map) { map.remove(); }
   map = L.map("map").setView([lat, lng], 14);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
   origemMarker = L.marker([lat, lng], { title: "Origem" }).addTo(map).bindPopup("Origem: " + endereco).openPopup();
+  setTimeout(() => map.invalidateSize(), 100);
 }
 
 tentarRetomarSessaoCliente();
@@ -305,7 +479,7 @@ function renderizarDestinos() {
     div.innerHTML = `<span><span class="ordem">${idx + 1}</span>${d.endereco}</span>`;
     const btn = document.createElement("button");
     btn.className = "btn-danger";
-    btn.style = "padding:4px 10px; font-size:12px;";
+    btn.style = "padding:5px 10px; font-size:12px;";
     btn.textContent = "remover";
     btn.onclick = () => removerDestino(idx);
     div.appendChild(btn);
@@ -378,7 +552,7 @@ async function chamarMotoboy() {
   const corrida = await resp.json();
   corridaAtualId = corrida.id;
 
-  document.getElementById("telaPrincipal").classList.add("oculto");
+  document.getElementById("cardNovaCorrida").classList.add("oculto");
   document.getElementById("telaAcompanhamento").classList.remove("oculto");
   iniciarPolling();
 }
@@ -418,9 +592,100 @@ function cancelarAcompanhamento() {
   corridaAtualId = null;
   destinos = [];
   document.getElementById("telaAcompanhamento").classList.add("oculto");
-  document.getElementById("telaPrincipal").classList.remove("oculto");
+  document.getElementById("cardNovaCorrida").classList.remove("oculto");
   renderizarDestinos();
   recalcularRotaEValor();
+}
+
+// ================= Histórico de corridas =================
+async function carregarHistorico() {
+  const lista = document.getElementById("listaHistorico");
+  const vazio = document.getElementById("historicoVazio");
+  lista.innerHTML = "";
+  vazio.textContent = "Carregando...";
+  try {
+    const resp = await fetch(`${API_BASE}/api/corridas/usuario/${usuario.id}/historico`);
+    const corridas = await resp.json();
+    if (!corridas.length) { vazio.textContent = "Você ainda não fez nenhuma corrida."; return; }
+    vazio.textContent = "";
+    const textosStatus = {
+      buscando: "Buscando motoboy", ofertada: "Aguardando aceite", aceita: "Motoboy a caminho",
+      chegou: "Motoboy no local", concluida: "Concluída", sem_motoboy_disponivel: "Sem motoboy disponível",
+      cancelada: "Cancelada"
+    };
+    corridas.forEach((c) => {
+      const div = document.createElement("div");
+      div.className = "historico-item";
+      const data = new Date(c.criada_em).toLocaleString("pt-BR");
+      const extras = c.destinos.length - 1;
+      div.innerHTML = `
+        <div class="historico-topo">
+          <span class="historico-data">${data}</span>
+          <span class="status-badge status-${c.status}">${textosStatus[c.status] || c.status}</span>
+        </div>
+        <div class="historico-valor">${formatarMoeda(c.valor_calculado || 0)}</div>
+        <div class="historico-endereco">De: ${c.origem.endereco}</div>
+        <div class="historico-endereco">Para: ${c.destinos[0].endereco}${extras > 0 ? ` (+${extras} destino${extras > 1 ? "s" : ""})` : ""}</div>
+      `;
+      lista.appendChild(div);
+    });
+  } catch (e) {
+    vazio.textContent = "Erro ao carregar histórico: " + e.message;
+  }
+}
+
+// ================= Perfil =================
+function preencherFormularioPerfil() {
+  document.getElementById("perfilNome").value = usuario.nome || "";
+  document.getElementById("perfilEmail").value = usuario.email || "";
+  document.getElementById("perfilTelefone").value = usuario.telefone || "";
+  document.getElementById("perfilSenha").value = "";
+  document.getElementById("perfilEndereco").value = usuario.endereco || "";
+  document.getElementById("perfilNomeLoja").value = usuario.nome_loja || "";
+  document.getElementById("perfilCnpj").value = usuario.cnpj || "";
+  document.getElementById("perfilTelefoneLoja").value = usuario.telefone_loja || "";
+}
+
+async function salvarPerfil() {
+  const hint = document.getElementById("perfilHint");
+  const nome = document.getElementById("perfilNome").value.trim();
+  const email = document.getElementById("perfilEmail").value.trim();
+  const telefone = document.getElementById("perfilTelefone").value.trim();
+  const senha = document.getElementById("perfilSenha").value;
+  const enderecoNovo = document.getElementById("perfilEndereco").value.trim();
+  const nome_loja = document.getElementById("perfilNomeLoja").value.trim();
+  const cnpj = document.getElementById("perfilCnpj").value.trim();
+  const telefone_loja = document.getElementById("perfilTelefoneLoja").value.trim();
+
+  hint.textContent = "Salvando...";
+  try {
+    const corpo = { nome, email, telefone, nome_loja, cnpj, telefone_loja };
+    if (senha) corpo.senha = senha;
+
+    if (enderecoNovo && enderecoNovo !== usuario.endereco) {
+      const { lat, lng } = await geocodificar(enderecoNovo);
+      corpo.endereco = enderecoNovo;
+      corpo.lat = lat;
+      corpo.lng = lng;
+    }
+
+    const resp = await fetch(`${API_BASE}/api/clientes/${usuario.id}/perfil`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo)
+    });
+    const dados = await resp.json();
+    if (resp.status !== 200) { hint.textContent = dados.erro || "Não foi possível salvar."; return; }
+
+    usuario = dados;
+    salvarSessaoLocal();
+    document.getElementById("clienteNome").textContent = usuario.nome;
+    document.getElementById("clienteOrigem").textContent = usuario.endereco;
+    if (corpo.lat) iniciarMapa(usuario.lat, usuario.lng, usuario.endereco);
+    document.getElementById("perfilSenha").value = "";
+    hint.textContent = "Perfil atualizado com sucesso ✅";
+    setTimeout(() => hint.textContent = "", 2500);
+  } catch (e) {
+    hint.textContent = "Erro: " + e.message;
+  }
 }
 </script>
 </body>
